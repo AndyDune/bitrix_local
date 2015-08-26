@@ -1,0 +1,3 @@
+[submodule "local/modules/rzn.library"]
+	path = local/modules/rzn.library
+	url = https://github.com/AndyDune/rzn.library.git
