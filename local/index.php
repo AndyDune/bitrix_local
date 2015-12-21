@@ -13,25 +13,43 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.ph
 
 try {
     $sm = Registry::getServiceManager();
-    /** @var Rzn\Library\Request $request */
+    /**
+     * @param Rzn\Library\Request $request
+     */
     $request = $sm->get('request');
-    if (!$request->isAjax()) {
-        //throw new Exception('Пока ждем только аякс.');
+    $isAjax = $request->isAjax();
+    if (!$isAjax) {
+        throw new Exception('Пока ждем только аякс.');
     }
 
     if (!isset($_REQUEST['component']) or !$_REQUEST['component']) {
         throw new Exception('Ждем название компонента.');
     }
 
+    $params = ['component' => $_REQUEST['component'], 'ajax' => $isAjax];
+    $eventManager = $sm->get('event_manager');
+    $params = $eventManager->prepareArgs($params);
 
-    /** @var Rzn\Library\Component\IncludeWithTemplate $includeWithTemplate */
+    $result = $eventManager->trigger('direct.include.component.before', null, $params);
+    if ($result->stopped()) {
+        throw new Exception($results->last());
+    }
+
+    /**
+     * Подключение файла с компонентом в рамках текущего шаблона
+     * @param Rzn\Library\Component\IncludeWithTemplate $includeWithTemplate
+     */
+
+    /** @var Rzn\Library\Component\IncludeWithTemplate  $includeWithTemplate */
     $includeWithTemplate = $sm->get('IncludeComponentWithTemplate');
     $includeWithTemplate->setFreeInclude();
-    $includeWithTemplate($_REQUEST['component']); // имеет метод __invoke
+    $includeWithTemplate->includeComponent($params['component']); // имеет метод __invoke
 
     if (!$includeWithTemplate->isSuccess()) {
         throw new Exception('Компонент с таким кодовым именем не зарегистрирован.');
     }
+
+    $eventManager->trigger('direct.include.component.success', null, $params);
     /*
         $path = $_SERVER['DOCUMENT_ROOT'] . '/local/templates/' . SITE_TEMPLATE_ID . '/include/component/' . $_REQUEST['component'] . '.php';
 

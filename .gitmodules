@@ -1,3 +1,6 @@
 [submodule "local/modules/rzn.library"]
 	path = local/modules/rzn.library
 	url = https://github.com/AndyDune/rzn.library.git
+[submodule "local/modules/rzn.phpunit4"]
+	path = local/modules/rzn.phpunit4
+	url = https://github.com/AndyDune/rzn.phpunit4.git

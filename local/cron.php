@@ -21,16 +21,32 @@
             'minute' => 5,
             'hour' => 8
         ],
+        'load_catalog_import_file' => [
+            'event' => 'catalog.import.file.load',
+            'minute' => 5,
+            'hour' => 5
+        ],
+        'export.order.to.the.x' => [
+            'event' => 'export.order.to.the.x',
+            'minute' => [6, 12, 18, 24, 30, 36, 42, 48, 54],
+            'hour' => '' // Кажный час
+        ],
+
     ]
 ]
 */
-
+$params = [];
 if (!isset($_SERVER['DOCUMENT_ROOT']) or !$_SERVER['DOCUMENT_ROOT']) {
     $dir =  __DIR__ . '/..'; //
     $_SERVER['DOCUMENT_ROOT'] = $dir;
     if (isset($_SERVER['argv'][1])) {
         $_REQUEST['event'] = $_SERVER['argv'][1];
     }
+    if (isset($_SERVER['argv'][2]) and $_SERVER['argv'][2]) {
+        parse_str($_SERVER['argv'][2], $params);
+    }
+} else {
+    parse_str($_SERVER['QUERY_STRING'], $params);
 }
 
 use Rzn\Library\Registry;
@@ -42,6 +58,9 @@ $events = $sm->get('event_manager');
 
 $config = $sm->get('config');
 $cron = $config['cron'];
+
+/** @var \Rzn\Library\Waterfall\WaterfallCollection $waterfall */
+$waterfall = $sm->get('waterfall');
 
 $minute = str_replace('0', '', date('i'));
 $hour = date('G');
@@ -55,13 +74,29 @@ try {
     if ($cron['direct'] and isset($_REQUEST['event'])) {
         if (isset($tasks[$_REQUEST['event']])) {
             $task = $tasks[$_REQUEST['event']];
-            $events->trigger($task['event']);
-            echo ' Отработоло событие: ', $task['event'];
+
+            if (isset($task['event'])) {
+                $events->trigger($task['event'], null, $params);
+                echo ' Отработоло событие: ', $task['event'];
+            }
+            if (isset($task['waterfall'])) {
+                $waterfall->execute($task['waterfall'], $params);
+                echo ' Был запущен водопад: ', $task['waterfall'];
+            }
         }
         throw new Exception('Прыг');
     }
 
     foreach ($tasks as $name => $task) {
+        if (isset($task['lock']) and $task['lock']) {
+            continue;
+        }
+        if (isset($task['params']) and $task['params'] and is_array($task['params'])) {
+            $params = $task['params'];
+        } else {
+            $params = [];
+        }
+
         if ($task['hour'] and !is_array($task['hour'])) {
             $task['hour'] = [$task['hour']];
         }
@@ -81,7 +116,13 @@ try {
             continue;
         }
         // Запуск события
-        $events->trigger($task['event']);
+        if (isset($task['event'])) {
+            $events->trigger($task['event'], null, $params);
+        }
+        if (isset($task['waterfall'])) {
+            $waterfall->execute($task['waterfall'], $params);
+        }
+
         echo ' Отработоло событие: ', $task['event'];
         break;
     }

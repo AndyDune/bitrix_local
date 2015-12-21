@@ -1,36 +1,9 @@
 <?
-require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/classes/general/charset_converter.php");
-require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/tools.php");
-
 $bSkipRewriteChecking = false;
-
-//try to fix REQUEST_URI under IIS
-$aProtocols = array('http', 'https');
-foreach($aProtocols as $prot)
-{
-    $marker = "404;".$prot."://";
-    if(($p = strpos($_SERVER["QUERY_STRING"], $marker)) !== false)
-    {
-        $uri = $_SERVER["QUERY_STRING"];
-        if(($p = strpos($uri, "/", $p+strlen($marker))) !== false)
-        {
-            if($_SERVER["REQUEST_URI"] == '' || $_SERVER["REQUEST_URI"] == '/404.php' || strpos($_SERVER["REQUEST_URI"], $marker) !== false)
-            {
-                $_SERVER["REQUEST_URI"] = $REQUEST_URI = substr($uri, $p);
-            }
-            $_SERVER["REDIRECT_STATUS"] = '404';
-            $_SERVER["QUERY_STRING"] = $QUERY_STRING = "";
-            $_GET = array();
-            break;
-        }
-    }
-}
 
 if (!defined("AUTH_404"))
     define("AUTH_404", "Y");
 
-require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/bx_root.php");
-require_once($_SERVER["DOCUMENT_ROOT"].BX_PERSONAL_ROOT."/php_interface/dbconn.php");
 
 if (!defined("BX_URLREWRITE")) {
     define("BX_URLREWRITE", true);
@@ -50,7 +23,6 @@ if(!defined("BX_UTF") && CUtil::DetectUTF8($_SERVER["REQUEST_URI"]))
 
 $requestUri = $requestPage.$requestParams;
 
-include_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/classes/general/virtual_io.php");
 $io = CBXVirtualIo::GetInstance();
 
 $arUrlRewrite = array();
